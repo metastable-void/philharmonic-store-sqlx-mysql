@@ -50,5 +50,19 @@ fn is_retryable(err: &sqlx::Error) -> bool {
 /// }
 /// ```
 pub(crate) fn is_duplicate_key(err: &sqlx::Error) -> bool {
-    err.as_database_error().and_then(|e| e.code()).as_deref() == Some("1062")
+    let Some(db_err) = err.as_database_error() else {
+        return false;
+    };
+
+    // mysql/sqlx can expose either vendor code (1062) or SQLSTATE (23000).
+    if matches!(db_err.code().as_deref(), Some("1062") | Some("23000")) {
+        return true;
+    }
+
+    if let Some(mysql_err) = db_err.try_downcast_ref::<sqlx::mysql::MySqlDatabaseError>() {
+        return mysql_err.number() == 1062;
+    }
+
+    let message = db_err.message();
+    message.contains("1062") && message.contains("Duplicate entry")
 }

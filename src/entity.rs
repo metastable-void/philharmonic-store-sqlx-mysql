@@ -198,9 +198,9 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
         };
 
         // Fetch the three attribute sets.
-        let content_attrs = fetch_content_attrs(&mut *conn, &id_bytes, revision_seq).await?;
-        let entity_attrs = fetch_entity_attrs(&mut *conn, &id_bytes, revision_seq).await?;
-        let scalar_attrs = fetch_scalar_attrs(&mut *conn, &id_bytes, revision_seq).await?;
+        let content_attrs = fetch_content_attrs(&mut conn, &id_bytes, revision_seq).await?;
+        let entity_attrs = fetch_entity_attrs(&mut conn, &id_bytes, revision_seq).await?;
+        let scalar_attrs = fetch_scalar_attrs(&mut conn, &id_bytes, revision_seq).await?;
 
         Ok(Some(RevisionRow {
             entity_id,
@@ -219,20 +219,19 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
         let id_bytes = codec::uuid_to_binary(entity_id);
         let mut conn = self.conns.acquire_read().await?;
 
-        let latest: Option<(u64,)> = sqlx::query_as(
+        let latest: (Option<u64>,) = sqlx::query_as(
             "SELECT MAX(revision_seq) FROM entity_revision \
              WHERE entity_id = ?",
         )
         .bind(&id_bytes[..])
-        .fetch_optional(&mut *conn)
+        .fetch_one(&mut *conn)
         .await
         .map_err(error::translate)?;
 
-        // MAX returns NULL (mapped to None by fetch_optional) when there
-        // are no rows. sqlx maps NULL inside a found row to None via
-        // Option<u64> in the tuple, so we also handle that case.
-        let seq = match latest {
-            Some((seq,)) => seq,
+        // Aggregate queries always return one row; MAX is NULL when there
+        // are no revisions for this entity.
+        let seq = match latest.0 {
+            Some(seq) => seq,
             None => return Ok(None),
         };
 
@@ -255,9 +254,9 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
             return Ok(None);
         };
 
-        let content_attrs = fetch_content_attrs(&mut *conn, &id_bytes, seq).await?;
-        let entity_attrs = fetch_entity_attrs(&mut *conn, &id_bytes, seq).await?;
-        let scalar_attrs = fetch_scalar_attrs(&mut *conn, &id_bytes, seq).await?;
+        let content_attrs = fetch_content_attrs(&mut conn, &id_bytes, seq).await?;
+        let entity_attrs = fetch_entity_attrs(&mut conn, &id_bytes, seq).await?;
+        let scalar_attrs = fetch_scalar_attrs(&mut conn, &id_bytes, seq).await?;
 
         Ok(Some(RevisionRow {
             entity_id,

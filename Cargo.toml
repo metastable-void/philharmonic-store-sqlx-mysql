@@ -1,0 +1,28 @@
+[package]
+name = "philharmonic-store-sqlx-mysql"
+version = "0.1.0"
+edition = "2024"
+
+description = "MySQL-family storage backend for the Philharmonic substrate, using sqlx. Targets MySQL 8, MariaDB, Aurora MySQL, and TiDB with LCD-compatible SQL only."
+license = "Apache-2.0 OR MPL-2.0"
+repository = "https://github.com/metastable-void/philharmonic-store-sqlx-mysql"
+readme = "README.md"
+rust-version = "1.85"
+
+keywords = ["philharmonic", "mysql", "sqlx", "storage"]
+categories = ["database"]
+
+[dependencies]
+philharmonic-types = "0.3.3"
+philharmonic-store = "0.1"
+sqlx = { version = "0.8", default-features = false, features = [
+    "mysql",
+    "runtime-tokio",
+] }
+async-trait = "0.1"
+thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+testcontainers = "0.27"
+testcontainers-modules = { version = "0.15", features = ["mysql"] }

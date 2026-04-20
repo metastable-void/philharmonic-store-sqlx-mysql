@@ -26,3 +26,9 @@ thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 testcontainers = "0.27"
 testcontainers-modules = { version = "0.15", features = ["mysql"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1

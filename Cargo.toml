@@ -7,7 +7,7 @@ description = "MySQL-family storage backend for the Philharmonic substrate, usin
 license = "Apache-2.0 OR MPL-2.0"
 repository = "https://github.com/metastable-void/philharmonic-store-sqlx-mysql"
 readme = "README.md"
-rust-version = "1.85"
+rust-version = "1.88"
 
 keywords = ["philharmonic", "mysql", "sqlx", "storage"]
 categories = ["database"]

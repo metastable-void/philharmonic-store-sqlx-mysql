@@ -96,6 +96,7 @@ fn content(bytes: &[u8]) -> ContentValue {
 // ── schema ───────────────────────────────────────────────────────
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn migrate_is_idempotent() {
     let ctx = setup().await;
 
@@ -106,6 +107,7 @@ async fn migrate_is_idempotent() {
 // ── content store ───────────────────────────────────────────────
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn content_put_and_get() {
     let ctx = setup().await;
 
@@ -121,6 +123,7 @@ async fn content_put_and_get() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn content_put_is_idempotent() {
     let ctx = setup().await;
 
@@ -137,6 +140,7 @@ async fn content_put_is_idempotent() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn content_get_missing_returns_none() {
     let ctx = setup().await;
 
@@ -148,6 +152,7 @@ async fn content_get_missing_returns_none() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn content_exists_true_and_false() {
     let ctx = setup().await;
 
@@ -166,6 +171,7 @@ async fn content_exists_true_and_false() {
 // ── identity store ──────────────────────────────────────────────
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn identity_mint_and_resolve_public() {
     let ctx = setup().await;
 
@@ -177,6 +183,7 @@ async fn identity_mint_and_resolve_public() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn identity_mint_and_resolve_internal() {
     let ctx = setup().await;
 
@@ -188,6 +195,7 @@ async fn identity_mint_and_resolve_internal() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn identity_resolve_unknown_returns_none() {
     let ctx = setup().await;
 
@@ -202,6 +210,7 @@ async fn identity_resolve_unknown_returns_none() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn identity_mint_produces_valid_versions() {
     let ctx = setup().await;
 
@@ -216,6 +225,7 @@ async fn identity_mint_produces_valid_versions() {
 // ── entity store: creation and reads ────────────────────────────
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn entity_create_and_get() {
     let ctx = setup().await;
 
@@ -237,6 +247,7 @@ async fn entity_create_and_get() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn entity_get_missing_returns_none() {
     let ctx = setup().await;
 
@@ -248,6 +259,7 @@ async fn entity_get_missing_returns_none() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn entity_create_duplicate_returns_collision() {
     let ctx = setup().await;
 
@@ -271,6 +283,7 @@ async fn entity_create_duplicate_returns_collision() {
 // ── entity store: revisions ─────────────────────────────────────
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_append_and_get() {
     let ctx = setup().await;
 
@@ -317,6 +330,7 @@ async fn revision_append_and_get() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_append_multiple() {
     let ctx = setup().await;
 
@@ -353,6 +367,7 @@ async fn revision_append_multiple() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_get_latest() {
     let ctx = setup().await;
 
@@ -390,6 +405,7 @@ async fn revision_get_latest() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_get_latest_no_revisions() {
     let ctx = setup().await;
 
@@ -409,6 +425,7 @@ async fn revision_get_latest_no_revisions() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_conflict_on_duplicate_seq() {
     let ctx = setup().await;
 
@@ -439,6 +456,7 @@ async fn revision_conflict_on_duplicate_seq() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_append_missing_entity() {
     let ctx = setup().await;
 
@@ -459,6 +477,7 @@ async fn revision_append_missing_entity() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_content_attrs_round_trip() {
     let ctx = setup().await;
 
@@ -495,6 +514,7 @@ async fn revision_content_attrs_round_trip() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_entity_attrs_pinned_and_latest() {
     let ctx = setup().await;
 
@@ -549,6 +569,7 @@ async fn revision_entity_attrs_pinned_and_latest() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_scalar_bool_and_i64() {
     let ctx = setup().await;
 
@@ -587,6 +608,7 @@ async fn revision_scalar_bool_and_i64() {
 // ── entity store: queries ───────────────────────────────────────
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn find_by_scalar_bool() {
     let ctx = setup().await;
 
@@ -625,6 +647,7 @@ async fn find_by_scalar_bool() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn find_by_scalar_i64() {
     let ctx = setup().await;
 
@@ -663,6 +686,7 @@ async fn find_by_scalar_i64() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn find_by_scalar_wrong_kind_returns_empty() {
     let ctx = setup().await;
 
@@ -688,6 +712,7 @@ async fn find_by_scalar_wrong_kind_returns_empty() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn find_by_scalar_uses_latest_revision() {
     let ctx = setup().await;
 
@@ -726,6 +751,7 @@ async fn find_by_scalar_uses_latest_revision() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn list_revisions_referencing() {
     let ctx = setup().await;
 
@@ -757,6 +783,7 @@ async fn list_revisions_referencing() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn list_revisions_referencing_wrong_attr_returns_empty() {
     let ctx = setup().await;
 
@@ -788,6 +815,7 @@ async fn list_revisions_referencing_wrong_attr_returns_empty() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn list_revisions_referencing_no_refs_returns_empty() {
     let ctx = setup().await;
 

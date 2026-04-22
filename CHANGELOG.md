@@ -9,6 +9,10 @@ this crate adheres to
 
 ## [Unreleased]
 
+- Bump `philharmonic-types` pin `0.3.4` → `0.3.5`. Picks up
+  the `Sha256` human-readable-aware serde (JSON encoding
+  unchanged; CBOR now emits a 32-byte byte string).
+
 ## [0.1.0]
 
 Current published baseline. Git history is the authoritative

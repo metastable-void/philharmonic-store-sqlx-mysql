@@ -13,7 +13,7 @@ keywords = ["philharmonic", "mysql", "sqlx", "storage"]
 categories = ["database"]
 
 [dependencies]
-philharmonic-types = "0.3.4"
+philharmonic-types = "0.3.5"
 philharmonic-store = "0.1"
 sqlx = { version = "0.8", default-features = false, features = [
     "mysql",

@@ -104,3 +104,13 @@ Rust crate projects. Someone's `GPL-2.0-or-later` project should not be
 forced to drop the `GPL-2.0` option because of our crates,
 while `Apache-2.0` is the non-copyleft (permissive) license recommended
 by the FSF, which we base our decisions on.
+
+## Contributing
+
+This crate is developed as a submodule of the Philharmonic
+workspace. Workspace-wide development conventions — git workflow,
+script wrappers, Rust code rules, versioning, terminology — live
+in the workspace meta-repo at
+[metastable-void/philharmonic-workspace](https://github.com/metastable-void/philharmonic-workspace),
+authoritatively in its
+[`CONTRIBUTING.md`](https://github.com/metastable-void/philharmonic-workspace/blob/main/CONTRIBUTING.md).

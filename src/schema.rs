@@ -70,6 +70,15 @@ CREATE TABLE IF NOT EXISTS attribute_scalar (
     KEY ix_attr_scalar_i64 (attribute_name, value_i64)
 ) ENGINE=InnoDB";
 
+/// Idempotent index additions for existing tables.
+///
+/// `CREATE TABLE IF NOT EXISTS` only creates inline keys on fresh
+/// tables. These statements ensure indexes also land on tables that
+/// already exist from an earlier schema version.
+const INDEX_MIGRATIONS: &[&str] = &[
+    "ALTER TABLE attribute_content ADD INDEX ix_attr_content_hash (attribute_name, content_hash)",
+];
+
 /// All DDL statements in dependency order.
 ///
 /// `identity` and `content` have no dependencies and come first.
@@ -121,5 +130,16 @@ pub async fn migrate(pool: &MySqlPool) -> Result<(), StoreError> {
             .await
             .map_err(error::translate)?;
     }
+    for index_sql in INDEX_MIGRATIONS {
+        match sqlx::query(index_sql).execute(pool).await {
+            Ok(_) => {}
+            Err(sqlx::Error::Database(db_err)) if is_duplicate_key_name(&*db_err) => {}
+            Err(err) => return Err(error::translate(err)),
+        }
+    }
     Ok(())
+}
+
+fn is_duplicate_key_name(err: &dyn sqlx::error::DatabaseError) -> bool {
+    err.code().is_some_and(|code| code == "1061")
 }

@@ -360,6 +360,51 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
             })
             .collect()
     }
+
+    async fn find_by_content(
+        &self,
+        kind: Uuid,
+        attribute_name: &str,
+        content_hash: Sha256,
+    ) -> Result<Vec<EntityRow>, StoreError> {
+        let kind_bytes = codec::uuid_to_binary(kind);
+        let hash_bytes = codec::sha256_to_binary(content_hash);
+        let mut conn = self.conns.acquire_read().await?;
+
+        let rows: Vec<(Vec<u8>, Vec<u8>, Vec<u8>, i64)> = sqlx::query_as(
+            "SELECT e.id, i.public, e.kind, e.created_at \
+             FROM entity e \
+             JOIN identity i ON i.internal = e.id \
+             JOIN attribute_content a ON a.entity_id = e.id \
+             WHERE e.kind = ? \
+               AND a.attribute_name = ? \
+               AND a.content_hash = ? \
+               AND a.revision_seq = (\
+                   SELECT MAX(r.revision_seq) \
+                   FROM entity_revision r \
+                   WHERE r.entity_id = e.id\
+               )",
+        )
+        .bind(&kind_bytes[..])
+        .bind(attribute_name)
+        .bind(&hash_bytes[..])
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(error::translate)?;
+
+        rows.into_iter()
+            .map(|(id_bytes, public_bytes, kind_bytes, created_at)| {
+                let internal = codec::binary_to_uuid(&id_bytes)?;
+                let public = codec::binary_to_uuid(&public_bytes)?;
+                let kind = codec::binary_to_uuid(&kind_bytes)?;
+                Ok(EntityRow {
+                    identity: Identity { internal, public },
+                    kind,
+                    created_at: UnixMillis(created_at),
+                })
+            })
+            .collect()
+    }
 }
 
 // ── attribute fetch helpers ─────────────────────────────────────────

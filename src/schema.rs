@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS attribute_content (
     revision_seq   BIGINT UNSIGNED NOT NULL,
     attribute_name VARCHAR(64) NOT NULL,
     content_hash   BINARY(32) NOT NULL,
-    PRIMARY KEY (entity_id, revision_seq, attribute_name)
+    PRIMARY KEY (entity_id, revision_seq, attribute_name),
+    KEY ix_attr_content_hash (attribute_name, content_hash)
 ) ENGINE=InnoDB";
 
 const CREATE_ATTRIBUTE_ENTITY: &str = "\

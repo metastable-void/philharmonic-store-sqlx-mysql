@@ -55,6 +55,7 @@ pub struct SinglePool {
 }
 
 impl SinglePool {
+    /// Create a provider backed by an existing MySQL connection pool.
     pub fn new(pool: MySqlPool) -> Self {
         Self { pool }
     }

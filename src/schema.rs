@@ -141,5 +141,8 @@ pub async fn migrate(pool: &MySqlPool) -> Result<(), StoreError> {
 }
 
 fn is_duplicate_key_name(err: &dyn sqlx::error::DatabaseError) -> bool {
-    err.code().is_some_and(|code| code == "1061")
+    // DatabaseError::code() returns the SQLSTATE ("42000"), not the
+    // MySQL error number (1061). Match on the message text which is
+    // stable across MySQL/MariaDB versions.
+    err.message().contains("Duplicate key name")
 }

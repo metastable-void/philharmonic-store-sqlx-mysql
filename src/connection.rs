@@ -49,6 +49,7 @@ pub trait ConnectionProvider: Send + Sync {
 /// `MySqlPool` at construction time (via `MySqlPoolOptions` or
 /// connection-string parameters); `SinglePool` does not add its own
 /// configuration layer.
+#[derive(Clone)]
 pub struct SinglePool {
     pool: MySqlPool,
 }
@@ -56,6 +57,15 @@ pub struct SinglePool {
 impl SinglePool {
     pub fn new(pool: MySqlPool) -> Self {
         Self { pool }
+    }
+
+    /// Connect to a MySQL database using the given URL.
+    ///
+    /// This is a convenience wrapper around `MySqlPool::connect` so
+    /// callers don't need a direct `sqlx` dependency.
+    pub async fn connect(url: &str) -> Result<Self, StoreError> {
+        let pool = MySqlPool::connect(url).await.map_err(error::translate)?;
+        Ok(Self { pool })
     }
 
     /// Access the underlying pool.

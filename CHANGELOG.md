@@ -9,6 +9,11 @@ this crate adheres to
 
 ## [Unreleased]
 
+## [0.1.2]
+
+- Fixed schema migration `is_duplicate_key_name` check: was matching
+  SQLSTATE instead of message text.
+
 ## [0.1.1]
 
 - Bump `philharmonic-types` pin `0.3.4` → `0.3.5`. Picks up

@@ -1,6 +1,6 @@
 [package]
 name = "philharmonic-store-sqlx-mysql"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 
 description = "MySQL-family storage backend for the Philharmonic substrate, using sqlx. Targets MySQL 8, MariaDB, Aurora MySQL, and TiDB with LCD-compatible SQL only."

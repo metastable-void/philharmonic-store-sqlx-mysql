@@ -102,6 +102,17 @@ async fn migrate_is_idempotent() {
 
     migrate(&ctx.pool).await.unwrap();
     migrate(&ctx.pool).await.unwrap();
+
+    let data_type = sqlx::query_scalar::<_, String>(
+        "SELECT CAST(DATA_TYPE AS CHAR) FROM INFORMATION_SCHEMA.COLUMNS \
+         WHERE TABLE_SCHEMA = DATABASE() \
+         AND TABLE_NAME = 'content' \
+         AND COLUMN_NAME = 'content_bytes'",
+    )
+    .fetch_one(&ctx.pool)
+    .await
+    .unwrap();
+    assert_eq!(data_type, "longblob");
 }
 
 // ── content store ───────────────────────────────────────────────

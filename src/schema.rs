@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS identity (
 const CREATE_CONTENT: &str = "\
 CREATE TABLE IF NOT EXISTS content (
     content_hash  BINARY(32) NOT NULL,
-    content_bytes MEDIUMBLOB NOT NULL,
+    content_bytes LONGBLOB NOT NULL,
     PRIMARY KEY (content_hash)
 ) ENGINE=InnoDB";
 
@@ -79,6 +79,10 @@ const INDEX_MIGRATIONS: &[&str] = &[
     "ALTER TABLE attribute_content ADD INDEX ix_attr_content_hash (attribute_name, content_hash)",
 ];
 
+/// Idempotent column shape updates for existing tables.
+const COLUMN_MIGRATIONS: &[&str] =
+    &["ALTER TABLE content MODIFY COLUMN content_bytes LONGBLOB NOT NULL"];
+
 /// All DDL statements in dependency order.
 ///
 /// `identity` and `content` have no dependencies and come first.
@@ -126,6 +130,12 @@ const DDL: &[&str] = &[
 pub async fn migrate(pool: &MySqlPool) -> Result<(), StoreError> {
     for ddl in DDL {
         sqlx::query(ddl)
+            .execute(pool)
+            .await
+            .map_err(error::translate)?;
+    }
+    for column_sql in COLUMN_MIGRATIONS {
+        sqlx::query(column_sql)
             .execute(pool)
             .await
             .map_err(error::translate)?;

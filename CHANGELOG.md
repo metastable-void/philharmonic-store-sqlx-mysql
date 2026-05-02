@@ -9,6 +9,10 @@ this crate adheres to
 
 ## [Unreleased]
 
+## [0.1.3]
+
+- Changed substrate `content.content_bytes` from `MEDIUMBLOB` to `LONGBLOB` for fresh schemas and startup migration.
+
 ## [0.1.2]
 
 - Fixed schema migration `is_duplicate_key_name` check: was matching

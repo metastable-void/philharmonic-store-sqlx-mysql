@@ -24,8 +24,8 @@ thiserror = "2"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-testcontainers = "0.27"
-testcontainers-modules = { version = "0.15", features = ["mysql"] }
+testcontainers = { version = "0.27", default-features = false, features = ["aws-lc-rs"] }
+testcontainers-modules = { version = "0.15", default-features = false, features = ["aws-lc-rs", "mysql"] }
 
 [profile.release]
 opt-level = 3

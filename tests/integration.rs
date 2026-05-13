@@ -11,22 +11,120 @@ use philharmonic_types::{
 
 use sqlx::{MySqlPool, mysql::MySqlPoolOptions};
 
-use std::{sync::OnceLock, time::Duration};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
-use tokio::sync::{Mutex, MutexGuard};
+use dockerlet::{Container, GenericImage, IntoContainerPort, WaitFor};
+use tokio::sync::OnceCell;
 
-use testcontainers_modules::{
-    mysql::Mysql,
-    testcontainers::{ContainerAsync, ImageExt, core::IntoContainerPort, runners::AsyncRunner},
-};
+/// Warm shared MySQL container for the test binary. Started once
+/// (~30s); reused by every `#[test]` in this file. Per-test
+/// isolation is by unique database name, not by container —
+/// dropping that container per test would cost 28+ image-pulls
+/// or starts in the worst case.
+static SHARED_MYSQL: OnceCell<SharedMysql> = OnceCell::const_new();
 
-type ContainerHandle = ContainerAsync<Mysql>;
+struct SharedMysql {
+    _container: Container,
+    base_url: String,
+}
+
+async fn shared_mysql() -> &'static SharedMysql {
+    SHARED_MYSQL
+        .get_or_init(|| async {
+            let container = GenericImage::new("mysql", "8")
+                .with_exposed_port(3306.tcp())
+                .with_env_var("MYSQL_ALLOW_EMPTY_PASSWORD", "yes")
+                .with_wait_for(WaitFor::message_on_stderr("ready for connections"))
+                .with_startup_timeout(Duration::from_secs(180))
+                .start()
+                .await
+                .expect("start shared MySQL container");
+            let host = container.get_host().await.expect("container host");
+            let port = container
+                .get_host_port_ipv4(3306.tcp())
+                .await
+                .expect("container port");
+            SharedMysql {
+                _container: container,
+                base_url: format!("mysql://root@{host}:{port}"),
+            }
+        })
+        .await
+}
+
+fn unique_db_name() -> String {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("dl_t_{}_{n}", std::process::id())
+}
+
+/// Connect to MySQL with exponential backoff over a 30s deadline.
+/// The mysql:8 image emits "ready for connections" during internal
+/// init before it accepts external connections, so the first few
+/// connects after `WaitFor::message_on_stderr` can EOF.
+async fn connect_with_retry(url: &str) -> MySqlPool {
+    use std::time::Instant;
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut backoff = Duration::from_millis(100);
+    let mut last_err = None;
+    while Instant::now() < deadline {
+        match MySqlPool::connect(url).await {
+            Ok(pool) => return pool,
+            Err(e) => {
+                last_err = Some(e);
+                tokio::time::sleep(backoff).await;
+                backoff = std::cmp::min(backoff * 2, Duration::from_secs(2));
+            }
+        }
+    }
+    panic!(
+        "could not connect to shared MySQL within 30s: {:?}",
+        last_err
+    );
+}
 
 struct TestContext {
-    _serial_guard: MutexGuard<'static, ()>,
-    _container: ContainerHandle,
+    db_name: String,
     pool: MySqlPool,
     store: SqlStore<SinglePool>,
+}
+
+impl Drop for TestContext {
+    fn drop(&mut self) {
+        // Best-effort per-test DB cleanup. The shared container
+        // stays warm; only this test's database goes away. Use a
+        // dedicated short-lived runtime since Drop can't .await.
+        let db_name = self.db_name.clone();
+        let base_url = shared_mysql_base_url();
+        std::thread::spawn(move || {
+            let runtime = match tokio::runtime::Builder::new_current_thread()
+                .enable_io()
+                .enable_time()
+                .build()
+            {
+                Ok(rt) => rt,
+                Err(_) => return,
+            };
+            runtime.block_on(async move {
+                if let Ok(pool) = MySqlPool::connect(&base_url).await {
+                    let _ = sqlx::query(&format!("DROP DATABASE IF EXISTS `{db_name}`"))
+                        .execute(&pool)
+                        .await;
+                }
+            });
+        });
+    }
+}
+
+fn shared_mysql_base_url() -> String {
+    // Safe sync access: `shared_mysql()` is awaited in every
+    // test's `setup()`, so by the time any `Drop` fires the
+    // OnceCell is initialised.
+    SHARED_MYSQL
+        .get()
+        .map(|s| s.base_url.clone())
+        .unwrap_or_default()
 }
 
 struct TestKindA;
@@ -51,24 +149,24 @@ impl Entity for TestKindB {
     const SCALAR_SLOTS: &'static [ScalarSlot] = &[];
 }
 
-static TEST_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
-
-fn test_mutex() -> &'static Mutex<()> {
-    TEST_MUTEX.get_or_init(|| Mutex::new(()))
-}
-
 async fn setup() -> TestContext {
-    let serial_guard = test_mutex().lock().await;
+    let shared = shared_mysql().await;
+    let db_name = unique_db_name();
 
-    let container = Mysql::default()
-        .with_startup_timeout(Duration::from_secs(180))
-        .start()
+    // Create the per-test database against the daemon's `mysql`
+    // system database (always present in mysql:8). The mysql:8
+    // image prints "ready for connections" during its internal
+    // init before it fully accepts external connections; retry
+    // the initial connect over a 30s deadline.
+    let admin_url = format!("{}/mysql", shared.base_url);
+    let admin_pool = connect_with_retry(&admin_url).await;
+    sqlx::query(&format!("CREATE DATABASE `{db_name}`"))
+        .execute(&admin_pool)
         .await
         .unwrap();
-    let host = container.get_host().await.unwrap();
-    let port = container.get_host_port_ipv4(3306.tcp()).await.unwrap();
+    drop(admin_pool);
 
-    let database_url = format!("mysql://root@{}:{}/test", host, port);
+    let database_url = format!("{}/{db_name}", shared.base_url);
     let pool = MySqlPoolOptions::new()
         .max_connections(8)
         .acquire_timeout(Duration::from_secs(10))
@@ -81,8 +179,7 @@ async fn setup() -> TestContext {
     let store = SqlStore::from_pool(pool.clone());
 
     TestContext {
-        _serial_guard: serial_guard,
-        _container: container,
+        db_name,
         pool,
         store,
     }

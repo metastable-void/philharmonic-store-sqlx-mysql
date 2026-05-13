@@ -9,6 +9,12 @@ this crate adheres to
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-13
+
+- Dev: migrate integration-test fixtures from `testcontainers` /
+  `testcontainers-modules` to `dockerlet 0.1`. No public-API
+  change; runtime behaviour unchanged.
+
 ## [0.1.3]
 
 - Changed substrate `content.content_bytes` from `MEDIUMBLOB` to `LONGBLOB` for fresh schemas and startup migration.

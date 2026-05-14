@@ -1,6 +1,6 @@
 [package]
 name = "philharmonic-store-sqlx-mysql"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 
 description = "MySQL-family storage backend for the Philharmonic substrate, using sqlx. Targets MySQL 8, MariaDB, Aurora MySQL, and TiDB with LCD-compatible SQL only."
@@ -19,12 +19,12 @@ sqlx = { version = "0.8", default-features = false, features = [
     "mysql",
     "runtime-tokio",
 ] }
-async-trait = "0.1"
-thiserror = "2"
+async-trait = { version = "0.1", default-features = false, features = [] }
+thiserror = { version = "2", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 dockerlet = "0.1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", default-features = false, features = ["macros", "rt", "rt-multi-thread", "time"] }
 
 [profile.release]
 opt-level = 3

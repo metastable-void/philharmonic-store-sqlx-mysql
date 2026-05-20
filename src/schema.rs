@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS attribute_scalar (
 /// already exist from an earlier schema version.
 const INDEX_MIGRATIONS: &[&str] = &[
     "ALTER TABLE attribute_content ADD INDEX ix_attr_content_hash (attribute_name, content_hash)",
+    "ALTER TABLE entity_revision ADD INDEX ix_entity_revision_entity_created (entity_id, created_at)",
 ];
 
 /// Idempotent column shape updates for existing tables.

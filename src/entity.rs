@@ -268,6 +268,47 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
         }))
     }
 
+    async fn latest_revision_timestamps(
+        &self,
+        entity_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, UnixMillis>, StoreError> {
+        if entity_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let placeholders = std::iter::repeat_n("?", entity_ids.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT er.entity_id, er.created_at \
+             FROM entity_revision er \
+             INNER JOIN (\
+                 SELECT entity_id, MAX(revision_seq) AS max_seq \
+                 FROM entity_revision \
+                 WHERE entity_id IN ({placeholders}) \
+                 GROUP BY entity_id\
+             ) latest \
+               ON latest.entity_id = er.entity_id \
+              AND latest.max_seq = er.revision_seq"
+        );
+        let mut query = sqlx::query_as::<_, (Vec<u8>, i64)>(&sql);
+        for entity_id in entity_ids {
+            query = query.bind(codec::uuid_to_binary(*entity_id).to_vec());
+        }
+
+        let mut conn = self.conns.acquire_read().await?;
+        let rows = query
+            .fetch_all(&mut *conn)
+            .await
+            .map_err(error::translate)?;
+        rows.into_iter()
+            .map(|(entity_id_bytes, created_at)| {
+                let entity_id = codec::binary_to_uuid(&entity_id_bytes)?;
+                Ok((entity_id, UnixMillis(created_at)))
+            })
+            .collect()
+    }
+
     async fn list_revisions_referencing(
         &self,
         target_entity_id: Uuid,

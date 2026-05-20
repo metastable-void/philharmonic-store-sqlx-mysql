@@ -534,6 +534,58 @@ async fn revision_get_latest_no_revisions() {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "requires MySQL testcontainer"]
+async fn latest_revision_timestamps_returns_latest_revision_created_at() {
+    let ctx = setup().await;
+
+    let empty = ctx.store.latest_revision_timestamps(&[]).await.unwrap();
+    assert!(empty.is_empty());
+
+    let with_revisions = ctx.store.mint().await.unwrap();
+    ctx.store
+        .create_entity(with_revisions, TestKindA::KIND)
+        .await
+        .unwrap();
+    let without_revisions = ctx.store.mint().await.unwrap();
+    ctx.store
+        .create_entity(without_revisions, TestKindA::KIND)
+        .await
+        .unwrap();
+    let unknown = Uuid::new_v4();
+
+    let rev0 = RevisionInput::new().with_scalar("priority", ScalarValue::I64(10));
+    let rev1 = RevisionInput::new().with_scalar("priority", ScalarValue::I64(11));
+    ctx.store
+        .append_revision(with_revisions.internal, 0, &rev0)
+        .await
+        .unwrap();
+    ctx.store
+        .append_revision(with_revisions.internal, 1, &rev1)
+        .await
+        .unwrap();
+    let latest = ctx
+        .store
+        .get_latest_revision(with_revisions.internal)
+        .await
+        .unwrap()
+        .unwrap();
+
+    let timestamps = ctx
+        .store
+        .latest_revision_timestamps(&[with_revisions.internal, without_revisions.internal, unknown])
+        .await
+        .unwrap();
+
+    assert_eq!(timestamps.len(), 1);
+    assert_eq!(
+        timestamps.get(&with_revisions.internal),
+        Some(&latest.created_at)
+    );
+    assert!(!timestamps.contains_key(&without_revisions.internal));
+    assert!(!timestamps.contains_key(&unknown));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "requires MySQL testcontainer"]
 async fn revision_conflict_on_duplicate_seq() {
     let ctx = setup().await;
 

@@ -534,10 +534,10 @@ async fn revision_get_latest_no_revisions() {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "requires MySQL testcontainer"]
-async fn latest_revision_timestamps_returns_latest_revision_created_at() {
+async fn latest_revisions_returns_latest_revision_data() {
     let ctx = setup().await;
 
-    let empty = ctx.store.latest_revision_timestamps(&[]).await.unwrap();
+    let empty = ctx.store.latest_revisions(&[]).await.unwrap();
     assert!(empty.is_empty());
 
     let with_revisions = ctx.store.mint().await.unwrap();
@@ -569,19 +569,22 @@ async fn latest_revision_timestamps_returns_latest_revision_created_at() {
         .unwrap()
         .unwrap();
 
-    let timestamps = ctx
+    let latest_revisions = ctx
         .store
-        .latest_revision_timestamps(&[with_revisions.internal, without_revisions.internal, unknown])
+        .latest_revisions(&[with_revisions.internal, without_revisions.internal, unknown])
         .await
         .unwrap();
 
-    assert_eq!(timestamps.len(), 1);
+    assert_eq!(latest_revisions.len(), 1);
     assert_eq!(
-        timestamps.get(&with_revisions.internal),
-        Some(&latest.created_at)
+        latest_revisions.get(&with_revisions.internal),
+        Some(&philharmonic_store::LatestRevision {
+            revision_seq: latest.revision_seq,
+            created_at: latest.created_at,
+        })
     );
-    assert!(!timestamps.contains_key(&without_revisions.internal));
-    assert!(!timestamps.contains_key(&unknown));
+    assert!(!latest_revisions.contains_key(&without_revisions.internal));
+    assert!(!latest_revisions.contains_key(&unknown));
 }
 
 #[tokio::test(flavor = "multi_thread")]

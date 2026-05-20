@@ -268,10 +268,10 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
         }))
     }
 
-    async fn latest_revision_timestamps(
+    async fn latest_revisions(
         &self,
         entity_ids: &[Uuid],
-    ) -> Result<HashMap<Uuid, UnixMillis>, StoreError> {
+    ) -> Result<HashMap<Uuid, philharmonic_store::LatestRevision>, StoreError> {
         if entity_ids.is_empty() {
             return Ok(HashMap::new());
         }
@@ -280,7 +280,7 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
             .collect::<Vec<_>>()
             .join(", ");
         let sql = format!(
-            "SELECT er.entity_id, er.created_at \
+            "SELECT er.entity_id, er.revision_seq, er.created_at \
              FROM entity_revision er \
              INNER JOIN (\
                  SELECT entity_id, MAX(revision_seq) AS max_seq \
@@ -288,10 +288,10 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
                  WHERE entity_id IN ({placeholders}) \
                  GROUP BY entity_id\
              ) latest \
-               ON latest.entity_id = er.entity_id \
+              ON latest.entity_id = er.entity_id \
               AND latest.max_seq = er.revision_seq"
         );
-        let mut query = sqlx::query_as::<_, (Vec<u8>, i64)>(&sql);
+        let mut query = sqlx::query_as::<_, (Vec<u8>, u64, i64)>(&sql);
         for entity_id in entity_ids {
             query = query.bind(codec::uuid_to_binary(*entity_id).to_vec());
         }
@@ -302,9 +302,15 @@ impl<P: ConnectionProvider> EntityStore for SqlStore<P> {
             .await
             .map_err(error::translate)?;
         rows.into_iter()
-            .map(|(entity_id_bytes, created_at)| {
+            .map(|(entity_id_bytes, revision_seq, created_at)| {
                 let entity_id = codec::binary_to_uuid(&entity_id_bytes)?;
-                Ok((entity_id, UnixMillis(created_at)))
+                Ok((
+                    entity_id,
+                    philharmonic_store::LatestRevision {
+                        revision_seq,
+                        created_at: UnixMillis(created_at),
+                    },
+                ))
             })
             .collect()
     }
